@@ -74,6 +74,58 @@
             color: var(--bg-primary);
         }
 
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .sync-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+            transition: background 0.3s;
+        }
+
+        .sync-status.connected {
+            background: var(--success);
+        }
+
+        .sync-status.syncing {
+            background: var(--warning);
+            animation: pulse 1s infinite;
+        }
+
+        .sync-status.offline {
+            background: var(--text-secondary);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            85% { opacity: 1; transform: translateX(-50%) translateY(0); }
+            100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+        }
+
+        .settings-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .settings-btn:hover {
+            color: var(--accent);
+        }
+
         /* Tab Navigation */
         .tab-nav {
             position: fixed;
@@ -524,6 +576,106 @@
             }
         }
 
+        /* Settings Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+
+        .modal-close {
+            float: right;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .server-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .server-status .status-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .server-status.connected .status-dot {
+            background: var(--success);
+        }
+
+        .server-status.disconnected .status-dot {
+            background: var(--danger);
+        }
+
+        .server-status.checking .status-dot {
+            background: var(--warning);
+            animation: pulse 1s infinite;
+        }
+
+        .data-actions {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .data-actions .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            border: none;
+        }
+
         /* Pending feeding indicator */
         .pending-feeding {
             background: var(--bg-secondary);
@@ -568,8 +720,58 @@
 <body>
     <header class="header">
         <h1><span class="cat-icon">🐈‍⬛</span> <span data-i18n="appName">Boma Tracker</span></h1>
-        <button class="lang-toggle" onclick="toggleLanguage()">한국어</button>
+        <div class="header-buttons">
+            <div class="sync-status offline" id="sync-status" title="Offline - using local storage"></div>
+            <button class="settings-btn" onclick="openSettings()" title="Settings">⚙️</button>
+            <button class="lang-toggle" onclick="toggleLanguage()">한국어</button>
+        </div>
     </header>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeSettings()">×</button>
+            <h2 data-i18n="settings">Settings</h2>
+
+            <div class="server-status disconnected" id="server-status">
+                <div class="status-dot"></div>
+                <div>
+                    <strong id="server-status-text" data-i18n="offline">Offline</strong>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);" id="server-status-desc" data-i18n="usingLocalStorage">Using local storage</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label data-i18n="serverUrl">Server URL</label>
+                <input type="text" id="server-url" placeholder="http://192.168.1.100:3000">
+            </div>
+
+            <button class="btn" onclick="connectToServer()" data-i18n="connect">Connect</button>
+
+            <hr style="border-color: var(--bg-secondary); margin: 24px 0;">
+
+            <h3 style="margin-bottom: 16px; color: var(--text-secondary);" data-i18n="dataManagement">Data Management</h3>
+
+            <div class="data-actions">
+                <button class="btn btn-outline" onclick="exportData()">
+                    <span>📤</span> <span data-i18n="exportData">Export Data</span>
+                </button>
+                <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">
+                    <span>📥</span> <span data-i18n="importData">Import Data</span>
+                </button>
+                <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData(event)">
+                <button class="btn btn-outline" onclick="syncFromServer()" id="sync-from-btn" style="display: none;">
+                    <span>⬇️</span> <span data-i18n="pullFromServer">Pull from Server</span>
+                </button>
+                <button class="btn btn-outline" onclick="syncToServer()" id="sync-to-btn" style="display: none;">
+                    <span>⬆️</span> <span data-i18n="pushToServer">Push to Server</span>
+                </button>
+                <button class="btn btn-danger" onclick="clearAllData()" style="margin-top: 8px;">
+                    <span>🗑️</span> <span data-i18n="clearData">Clear All Data</span>
+                </button>
+            </div>
+        </div>
+    </div>
 
     <nav class="tab-nav">
         <button class="tab-btn active" onclick="switchTab('feed')" data-tab="feed">
@@ -827,7 +1029,25 @@
                 noLitter: "No litter activity yet today",
                 noHealthEvents: "No health events recorded",
                 fed: "fed",
-                ate: "ate"
+                ate: "ate",
+                settings: "Settings",
+                serverUrl: "Server URL",
+                connect: "Connect",
+                disconnect: "Disconnect",
+                connected: "Connected",
+                offline: "Offline",
+                connecting: "Connecting...",
+                usingLocalStorage: "Using local storage",
+                connectedToServer: "Synced with server",
+                dataManagement: "Data Management",
+                exportData: "Export Data",
+                importData: "Import Data",
+                pullFromServer: "Pull from Server",
+                pushToServer: "Push to Server",
+                clearData: "Clear All Data",
+                confirmClear: "Are you sure you want to delete ALL data? This cannot be undone!",
+                dataSynced: "Data synced successfully!",
+                connectionFailed: "Could not connect to server"
             },
             ko: {
                 appName: "보마 트래커",
@@ -877,7 +1097,25 @@
                 noLitter: "오늘 화장실 기록이 없습니다",
                 noHealthEvents: "건강 기록이 없습니다",
                 fed: "급여",
-                ate: "섭취"
+                ate: "섭취",
+                settings: "설정",
+                serverUrl: "서버 URL",
+                connect: "연결",
+                disconnect: "연결 해제",
+                connected: "연결됨",
+                offline: "오프라인",
+                connecting: "연결 중...",
+                usingLocalStorage: "로컬 저장소 사용 중",
+                connectedToServer: "서버와 동기화됨",
+                dataManagement: "데이터 관리",
+                exportData: "데이터 내보내기",
+                importData: "데이터 가져오기",
+                pullFromServer: "서버에서 가져오기",
+                pushToServer: "서버로 보내기",
+                clearData: "모든 데이터 삭제",
+                confirmClear: "정말로 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다!",
+                dataSynced: "데이터가 동기화되었습니다!",
+                connectionFailed: "서버에 연결할 수 없습니다"
             }
         };
 
@@ -899,6 +1137,215 @@
             document.querySelector('.lang-toggle').textContent = currentLang === 'en' ? '한국어' : 'English';
         }
 
+        // ========== Server Connection ==========
+        let serverUrl = localStorage.getItem('boma-server-url') || '';
+        let isConnected = false;
+
+        function openSettings() {
+            document.getElementById('settings-modal').classList.add('active');
+            document.getElementById('server-url').value = serverUrl;
+            checkServerConnection();
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.remove('active');
+        }
+
+        async function connectToServer() {
+            serverUrl = document.getElementById('server-url').value.trim();
+            if (!serverUrl) {
+                disconnectFromServer();
+                return;
+            }
+
+            // Remove trailing slash
+            serverUrl = serverUrl.replace(/\/$/, '');
+            localStorage.setItem('boma-server-url', serverUrl);
+
+            await checkServerConnection();
+
+            if (isConnected) {
+                // Auto-sync on connect
+                await syncFromServer();
+            }
+        }
+
+        function disconnectFromServer() {
+            serverUrl = '';
+            isConnected = false;
+            localStorage.removeItem('boma-server-url');
+            updateConnectionUI();
+        }
+
+        async function checkServerConnection() {
+            if (!serverUrl) {
+                isConnected = false;
+                updateConnectionUI();
+                return;
+            }
+
+            updateConnectionUI('checking');
+
+            try {
+                const response = await fetch(`${serverUrl}/api/info`, {
+                    method: 'GET',
+                    timeout: 5000
+                });
+                if (response.ok) {
+                    isConnected = true;
+                } else {
+                    isConnected = false;
+                }
+            } catch (error) {
+                isConnected = false;
+            }
+
+            updateConnectionUI();
+        }
+
+        function updateConnectionUI(status = null) {
+            const statusEl = document.getElementById('server-status');
+            const statusText = document.getElementById('server-status-text');
+            const statusDesc = document.getElementById('server-status-desc');
+            const syncStatus = document.getElementById('sync-status');
+            const syncFromBtn = document.getElementById('sync-from-btn');
+            const syncToBtn = document.getElementById('sync-to-btn');
+
+            if (status === 'checking') {
+                statusEl.className = 'server-status checking';
+                statusText.textContent = translations[currentLang].connecting;
+                statusDesc.textContent = '';
+                syncStatus.className = 'sync-status syncing';
+                return;
+            }
+
+            if (isConnected) {
+                statusEl.className = 'server-status connected';
+                statusText.textContent = translations[currentLang].connected;
+                statusDesc.textContent = serverUrl;
+                syncStatus.className = 'sync-status connected';
+                syncStatus.title = 'Connected to server';
+                syncFromBtn.style.display = 'flex';
+                syncToBtn.style.display = 'flex';
+            } else {
+                statusEl.className = 'server-status disconnected';
+                statusText.textContent = translations[currentLang].offline;
+                statusDesc.textContent = translations[currentLang].usingLocalStorage;
+                syncStatus.className = 'sync-status offline';
+                syncStatus.title = 'Offline - using local storage';
+                syncFromBtn.style.display = 'none';
+                syncToBtn.style.display = 'none';
+            }
+        }
+
+        async function syncFromServer() {
+            if (!isConnected) return;
+
+            try {
+                const response = await fetch(`${serverUrl}/api/data`);
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('boma-data', JSON.stringify(data));
+                    refreshAllDisplays();
+                    showToast(translations[currentLang].dataSynced);
+                }
+            } catch (error) {
+                console.error('Sync from server failed:', error);
+            }
+        }
+
+        async function syncToServer() {
+            if (!isConnected) return;
+
+            try {
+                const data = getData();
+                const response = await fetch(`${serverUrl}/api/data`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    showToast(translations[currentLang].dataSynced);
+                }
+            } catch (error) {
+                console.error('Sync to server failed:', error);
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: var(--success);
+                color: var(--bg-primary);
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-weight: 600;
+                z-index: 1001;
+                animation: fadeInOut 2s ease-in-out;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        function exportData() {
+            const data = getData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `boma-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    localStorage.setItem('boma-data', JSON.stringify(data));
+
+                    if (isConnected) {
+                        await syncToServer();
+                    }
+
+                    refreshAllDisplays();
+                    showToast(translations[currentLang].dataSynced);
+                } catch (error) {
+                    alert('Invalid JSON file');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function clearAllData() {
+            if (confirm(translations[currentLang].confirmClear)) {
+                localStorage.removeItem('boma-data');
+                if (isConnected) {
+                    syncToServer();
+                }
+                refreshAllDisplays();
+            }
+        }
+
+        function refreshAllDisplays() {
+            updateFeedingDisplay();
+            updateLitterDisplay();
+            updateHealthDisplay();
+            if (document.getElementById('charts-tab').classList.contains('active')) {
+                initCharts();
+            }
+        }
+
         // ========== Data Management ==========
         function getData() {
             const data = localStorage.getItem('boma-data');
@@ -912,6 +1359,11 @@
 
         function saveData(data) {
             localStorage.setItem('boma-data', JSON.stringify(data));
+
+            // Auto-sync to server if connected
+            if (isConnected) {
+                syncToServer();
+            }
         }
 
         // ========== Tab Navigation ==========
@@ -1346,7 +1798,7 @@
         }
 
         // ========== Initialize ==========
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             updateLanguage();
             initCircularSlider();
             updateFeedingDisplay();
@@ -1355,6 +1807,22 @@
 
             // Set default date to today
             document.getElementById('health-event-date').valueAsDate = new Date();
+
+            // Check server connection if URL was saved
+            if (serverUrl) {
+                await checkServerConnection();
+                if (isConnected) {
+                    // Auto-sync from server on load
+                    await syncFromServer();
+                }
+            }
+
+            // Close modal when clicking outside
+            document.getElementById('settings-modal').addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal-overlay')) {
+                    closeSettings();
+                }
+            });
         });
     </script>
 </body>
