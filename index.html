@@ -3,7 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Boma">
     <title>Boma Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
@@ -877,11 +885,13 @@
                 <button class="quick-btn" onclick="setFoodAmount(30)">30g</button>
                 <button class="quick-btn" onclick="setFoodAmount(40)">40g</button>
             </div>
-            <button class="btn" onclick="startFeeding()" data-i18n="logFeeding">Log Feeding</button>
+            <button class="btn" onclick="addNewFeeding()" data-i18n="addFood">Add Food</button>
         </div>
 
         <div id="pending-feeding-card" class="card" style="display: none;">
             <h2 data-i18n="howMuchAte">How much did Boma eat?</h2>
+            <p id="pending-feeding-info" style="text-align: center; color: var(--text-secondary); margin-bottom: 16px;"></p>
+            <input type="hidden" id="pending-feeding-index" value="">
             <div class="circular-slider-container">
                 <div class="circular-slider" id="eaten-slider">
                     <svg viewBox="0 0 200 200">
@@ -901,7 +911,10 @@
                 <button class="quick-btn" onclick="setEatenPercentage(75)">75%</button>
                 <button class="quick-btn" onclick="setEatenPercentage(100)">100%</button>
             </div>
-            <button class="btn" onclick="saveFeeding()" data-i18n="saveFeeding">Save Feeding</button>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn" onclick="saveFeeding()" style="flex: 1;" data-i18n="saveEaten">Save</button>
+                <button class="btn btn-outline" onclick="skipFeeding()" style="flex: 0 0 auto; padding: 16px;" data-i18n="skipForNow">Skip</button>
+            </div>
         </div>
 
         <div class="card">
@@ -1099,7 +1112,10 @@
                 connectionFailed: "Could not connect to server",
                 pullToRefresh: "Pull to refresh",
                 releaseToRefresh: "Release to refresh",
-                refreshing: "Refreshing..."
+                refreshing: "Refreshing...",
+                addFood: "Add Food",
+                saveEaten: "Save",
+                skipForNow: "Skip"
             },
             ko: {
                 appName: "보마 트래커",
@@ -1170,7 +1186,10 @@
                 connectionFailed: "서버에 연결할 수 없습니다",
                 pullToRefresh: "당겨서 새로고침",
                 releaseToRefresh: "놓으면 새로고침",
-                refreshing: "새로고침 중..."
+                refreshing: "새로고침 중...",
+                addFood: "사료 추가",
+                saveEaten: "저장",
+                skipForNow: "건너뛰기"
             }
         };
 
@@ -1436,28 +1455,71 @@
         }
 
         // ========== Feeding Functions ==========
-        let pendingFeeding = null;
         let currentEatenPercentage = 100;
 
         function setFoodAmount(amount) {
             document.getElementById('food-amount').value = amount;
         }
 
-        function startFeeding() {
+        // Check if there's a feeding that needs % eaten recorded
+        function checkPendingFeeding() {
+            const data = getData();
+            const incompleteFeedingIndex = data.feedings.findIndex(f => f.percentEaten === undefined);
+
+            if (incompleteFeedingIndex !== -1) {
+                const feeding = data.feedings[incompleteFeedingIndex];
+                showPendingFeedingCard(feeding, incompleteFeedingIndex);
+            }
+        }
+
+        function showPendingFeedingCard(feeding, index) {
+            const card = document.getElementById('pending-feeding-card');
+            const timestamp = new Date(feeding.timestamp);
+            const timeAgo = getTimeAgo(timestamp);
+
+            document.getElementById('pending-feeding-info').textContent =
+                `${feeding.amount}g ${translations[currentLang].fed} ${timeAgo}`;
+            document.getElementById('pending-feeding-index').value = index;
+
+            card.style.display = 'block';
+            setEatenPercentage(100);
+        }
+
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+
+            if (diffMins < 60) {
+                return currentLang === 'en' ? `${diffMins}m ago` : `${diffMins}분 전`;
+            } else if (diffHours < 24) {
+                return currentLang === 'en' ? `${diffHours}h ago` : `${diffHours}시간 전`;
+            } else {
+                return date.toLocaleDateString();
+            }
+        }
+
+        function addNewFeeding() {
             const amount = parseFloat(document.getElementById('food-amount').value);
             if (!amount || amount <= 0) {
                 alert(currentLang === 'en' ? 'Please enter a valid amount' : '유효한 양을 입력해주세요');
                 return;
             }
 
-            pendingFeeding = {
+            const data = getData();
+
+            // Add new feeding without % eaten (to be filled in later)
+            data.feedings.push({
                 amount: amount,
                 timestamp: new Date().toISOString()
-            };
+                // percentEaten will be added when user logs consumption
+            });
+            saveData(data);
 
-            document.getElementById('pending-feeding-card').style.display = 'block';
             document.getElementById('food-amount').value = '';
-            setEatenPercentage(100);
+            updateFeedingDisplay();
+            showToast(currentLang === 'en' ? `${amount}g logged!` : `${amount}g 기록됨!`);
         }
 
         function setEatenPercentage(percent) {
@@ -1506,19 +1568,25 @@
         }
 
         function saveFeeding() {
-            if (!pendingFeeding) return;
+            const indexInput = document.getElementById('pending-feeding-index');
+            const index = parseInt(indexInput.value);
 
             const data = getData();
-            data.feedings.push({
-                ...pendingFeeding,
-                percentEaten: currentEatenPercentage,
-                actualEaten: Math.round(pendingFeeding.amount * currentEatenPercentage / 100)
-            });
-            saveData(data);
+            if (data.feedings[index]) {
+                data.feedings[index].percentEaten = currentEatenPercentage;
+                data.feedings[index].actualEaten = Math.round(data.feedings[index].amount * currentEatenPercentage / 100);
+                saveData(data);
+            }
 
-            pendingFeeding = null;
             document.getElementById('pending-feeding-card').style.display = 'none';
             updateFeedingDisplay();
+
+            // Check if there are more incomplete feedings
+            checkPendingFeeding();
+        }
+
+        function skipFeeding() {
+            document.getElementById('pending-feeding-card').style.display = 'none';
         }
 
         function deleteFeeding(index) {
@@ -1560,10 +1628,14 @@
                 logContainer.innerHTML = recentFeedings.map((f, i) => {
                     const date = new Date(f.timestamp);
                     const realIndex = data.feedings.length - 1 - i;
+                    const isPending = f.percentEaten === undefined;
+                    const eatenText = isPending
+                        ? `<span style="color: var(--warning);">⏳ ${currentLang === 'en' ? 'pending' : '대기중'}</span>`
+                        : `${f.percentEaten}% ${translations[currentLang].ate}`;
                     return `
-                        <div class="log-item">
+                        <div class="log-item" ${isPending ? 'style="border-left: 3px solid var(--warning);"' : ''}>
                             <div class="info">
-                                <span class="primary">${f.amount}g ${translations[currentLang].fed}, ${f.percentEaten}% ${translations[currentLang].ate}</span>
+                                <span class="primary">${f.amount}g ${translations[currentLang].fed}, ${eatenText}</span>
                                 <span class="secondary">${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
                             <button class="delete-btn" onclick="deleteFeeding(${realIndex})">×</button>
@@ -1949,6 +2021,16 @@
                     closeSettings();
                 }
             });
+
+            // Register service worker for PWA
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js')
+                    .then((reg) => console.log('Service worker registered'))
+                    .catch((err) => console.log('Service worker error:', err));
+            }
+
+            // Check for pending feeding from last session
+            checkPendingFeeding();
         });
     </script>
 </body>
