@@ -113,6 +113,49 @@
             100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
         }
 
+        /* Pull to Refresh */
+        .pull-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            transform: translateY(-100%);
+            transition: transform 0.2s;
+            z-index: 99;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .pull-indicator.visible {
+            transform: translateY(0);
+        }
+
+        .pull-indicator.refreshing {
+            transform: translateY(0);
+        }
+
+        .pull-indicator .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--bg-card);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            margin-right: 12px;
+        }
+
+        .pull-indicator.refreshing .spinner {
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         .settings-btn {
             background: none;
             border: none;
@@ -718,6 +761,12 @@
     </style>
 </head>
 <body>
+    <!-- Pull to Refresh Indicator -->
+    <div class="pull-indicator" id="pull-indicator">
+        <div class="spinner"></div>
+        <span id="pull-text" data-i18n="pullToRefresh">Pull to refresh</span>
+    </div>
+
     <header class="header">
         <h1><span class="cat-icon">🐈‍⬛</span> <span data-i18n="appName">Boma Tracker</span></h1>
         <div class="header-buttons">
@@ -1047,7 +1096,10 @@
                 clearData: "Clear All Data",
                 confirmClear: "Are you sure you want to delete ALL data? This cannot be undone!",
                 dataSynced: "Data synced successfully!",
-                connectionFailed: "Could not connect to server"
+                connectionFailed: "Could not connect to server",
+                pullToRefresh: "Pull to refresh",
+                releaseToRefresh: "Release to refresh",
+                refreshing: "Refreshing..."
             },
             ko: {
                 appName: "보마 트래커",
@@ -1115,7 +1167,10 @@
                 clearData: "모든 데이터 삭제",
                 confirmClear: "정말로 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다!",
                 dataSynced: "데이터가 동기화되었습니다!",
-                connectionFailed: "서버에 연결할 수 없습니다"
+                connectionFailed: "서버에 연결할 수 없습니다",
+                pullToRefresh: "당겨서 새로고침",
+                releaseToRefresh: "놓으면 새로고침",
+                refreshing: "새로고침 중..."
             }
         };
 
@@ -1797,10 +1852,81 @@
             }
         }
 
+        // ========== Pull to Refresh ==========
+        function initPullToRefresh() {
+            const indicator = document.getElementById('pull-indicator');
+            const pullText = document.getElementById('pull-text');
+            let startY = 0;
+            let currentY = 0;
+            let isPulling = false;
+            let isRefreshing = false;
+            const threshold = 80;
+
+            document.addEventListener('touchstart', (e) => {
+                if (window.scrollY === 0 && !isRefreshing) {
+                    startY = e.touches[0].clientY;
+                    isPulling = true;
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!isPulling || isRefreshing) return;
+
+                currentY = e.touches[0].clientY;
+                const pullDistance = currentY - startY;
+
+                if (pullDistance > 0 && window.scrollY === 0) {
+                    const progress = Math.min(pullDistance / threshold, 1);
+                    indicator.style.transform = `translateY(${Math.min(pullDistance * 0.5, 60) - 60}px)`;
+
+                    if (pullDistance > threshold) {
+                        indicator.classList.add('visible');
+                        pullText.textContent = translations[currentLang].releaseToRefresh;
+                    } else {
+                        pullText.textContent = translations[currentLang].pullToRefresh;
+                    }
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchend', async () => {
+                if (!isPulling || isRefreshing) return;
+
+                const pullDistance = currentY - startY;
+
+                if (pullDistance > threshold) {
+                    isRefreshing = true;
+                    indicator.classList.add('visible', 'refreshing');
+                    indicator.style.transform = 'translateY(0)';
+                    pullText.textContent = translations[currentLang].refreshing;
+
+                    // Sync from server if connected, otherwise just refresh displays
+                    if (isConnected) {
+                        await syncFromServer();
+                    } else {
+                        refreshAllDisplays();
+                    }
+
+                    setTimeout(() => {
+                        indicator.classList.remove('visible', 'refreshing');
+                        indicator.style.transform = 'translateY(-100%)';
+                        isRefreshing = false;
+                    }, 500);
+                } else {
+                    indicator.style.transform = 'translateY(-100%)';
+                    indicator.classList.remove('visible');
+                }
+
+                isPulling = false;
+                startY = 0;
+                currentY = 0;
+            });
+        }
+
         // ========== Initialize ==========
         document.addEventListener('DOMContentLoaded', async () => {
             updateLanguage();
             initCircularSlider();
+            initPullToRefresh();
             updateFeedingDisplay();
             updateLitterDisplay();
             updateHealthDisplay();

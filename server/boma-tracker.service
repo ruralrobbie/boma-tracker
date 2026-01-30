@@ -1,0 +1,17 @@
+[Unit]
+Description=Boma Tracker Server - Cat care tracking app
+After=network.target
+
+[Service]
+Type=simple
+User=user
+WorkingDirectory=/home/user/boma-tracker/server
+ExecStart=/usr/bin/node /home/user/boma-tracker/server/server.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=boma-tracker
+
+[Install]
+WantedBy=multi-user.target
