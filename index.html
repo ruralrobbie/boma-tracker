@@ -1207,8 +1207,23 @@
         }
 
         // ========== Server Connection ==========
+        // Auto-detect server if served from same domain
         let serverUrl = localStorage.getItem('boma-server-url') || '';
         let isConnected = false;
+
+        // Auto-detect: if we're on the VPS, use same origin
+        async function autoDetectServer() {
+            // Try same origin first (for VPS hosting)
+            try {
+                const response = await fetch('/api/info', { method: 'GET' });
+                if (response.ok) {
+                    serverUrl = window.location.origin;
+                    localStorage.setItem('boma-server-url', serverUrl);
+                    return true;
+                }
+            } catch (e) {}
+            return false;
+        }
 
         function openSettings() {
             document.getElementById('settings-modal').classList.add('active');
@@ -1977,8 +1992,9 @@
             // Set default date to today
             document.getElementById('health-event-date').valueAsDate = new Date();
 
-            // Check server connection if URL was saved
-            if (serverUrl) {
+            // Auto-detect server or use saved URL
+            const detected = await autoDetectServer();
+            if (detected || serverUrl) {
                 await checkServerConnection();
                 if (isConnected) {
                     // Auto-sync from server on load
