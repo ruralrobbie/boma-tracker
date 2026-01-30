@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Boma Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #202040;
+            --accent: #ffd700;
+            --accent-dim: #b8960f;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --danger: #f87171;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cat-icon {
+            font-size: 1.8rem;
+        }
+
+        .lang-toggle {
+            background: var(--bg-card);
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .lang-toggle:hover {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-secondary);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0;
+            border-top: 1px solid var(--bg-card);
+            z-index: 100;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            transition: color 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+        }
+
+        .tab-btn span {
+            font-size: 1.5rem;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .card h2 {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            color: var(--accent);
+        }
+
+        /* Food Entry */
+        .food-input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .food-input {
+            flex: 1;
+            background: var(--bg-secondary);
+            border: 2px solid transparent;
+            color: var(--text-primary);
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .food-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .food-unit {
+            display: flex;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:hover {
+            background: var(--accent-dim);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 2px solid var(--accent);
+        }
+
+        /* Circular Slider */
+        .circular-slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .circular-slider {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            cursor: pointer;
+        }
+
+        .circular-slider svg {
+            transform: rotate(-90deg);
+        }
+
+        .circular-slider .bg-circle {
+            fill: none;
+            stroke: var(--bg-secondary);
+            stroke-width: 20;
+        }
+
+        .circular-slider .progress-circle {
+            fill: none;
+            stroke: var(--accent);
+            stroke-width: 20;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.1s;
+        }
+
+        .circular-slider .center-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .circular-slider .percentage {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .circular-slider .label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Quick Buttons */
+        .quick-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .quick-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 12px 8px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-btn:hover, .quick-btn.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        /* Litter Buttons */
+        .litter-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .litter-btn {
+            background: var(--bg-secondary);
+            border: 2px solid var(--accent);
+            color: var(--text-primary);
+            padding: 30px 20px;
+            border-radius: 16px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .litter-btn:active {
+            transform: scale(0.95);
+        }
+
+        .litter-btn span {
+            font-size: 2.5rem;
+        }
+
+        .litter-btn.poop {
+            border-color: #8b4513;
+        }
+
+        .litter-btn.poop:hover {
+            background: #8b4513;
+        }
+
+        .litter-btn.pee {
+            border-color: #ffd700;
+        }
+
+        .litter-btn.pee:hover {
+            background: #b8960f;
+        }
+
+        /* Log List */
+        .log-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--bg-secondary);
+        }
+
+        .log-item:last-child {
+            border-bottom: none;
+        }
+
+        .log-item .info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .log-item .primary {
+            font-weight: 600;
+        }
+
+        .log-item .secondary {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .log-item .delete-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            padding: 8px;
+            font-size: 1.2rem;
+        }
+
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            margin-bottom: 16px;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .chart-btn {
+            background: var(--bg-secondary);
+            border: 1px solid var(--text-secondary);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .chart-btn.active {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Health Form */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 2px solid transparent;
+            color: var(--text-primary);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--accent);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            background: var(--accent);
+            border-radius: 50%;
+        }
+
+        .timeline-item .date {
+            font-size: 0.85rem;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .timeline-item .title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .timeline-item .details {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Today's Summary */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .summary-item {
+            background: var(--bg-secondary);
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .summary-item .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .summary-item .label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state span {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 16px;
+        }
+
+        /* Responsive */
+        @media (min-width: 768px) {
+            .tab-nav {
+                position: static;
+                max-width: 600px;
+                margin: 0 auto;
+                border-radius: 0 0 16px 16px;
+            }
+
+            body {
+                padding-bottom: 20px;
+            }
+
+            .food-input {
+                font-size: 2rem;
+            }
+        }
+
+        /* Pending feeding indicator */
+        .pending-feeding {
+            background: var(--bg-secondary);
+            border: 2px dashed var(--accent);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pending-feeding .info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pending-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pending-actions button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .pending-actions .save-btn {
+            background: var(--success);
+            color: var(--bg-primary);
+        }
+
+        .pending-actions .cancel-btn {
+            background: var(--danger);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1><span class="cat-icon">🐈‍⬛</span> <span data-i18n="appName">Boma Tracker</span></h1>
+        <button class="lang-toggle" onclick="toggleLanguage()">한국어</button>
+    </header>
+
+    <nav class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('feed')" data-tab="feed">
+            <span>🍽️</span>
+            <span data-i18n="tabFeed">Feed</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('litter')" data-tab="litter">
+            <span>🚽</span>
+            <span data-i18n="tabLitter">Litter</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('charts')" data-tab="charts">
+            <span>📊</span>
+            <span data-i18n="tabCharts">Charts</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('health')" data-tab="health">
+            <span>🏥</span>
+            <span data-i18n="tabHealth">Health</span>
+        </button>
+    </nav>
+
+    <!-- Feed Tab -->
+    <div id="feed-tab" class="tab-content active">
+        <div class="card">
+            <h2 data-i18n="todaySummary">Today's Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="value" id="today-food">0g</div>
+                    <div class="label" data-i18n="totalFood">Total Food</div>
+                </div>
+                <div class="summary-item">
+                    <div class="value" id="today-eaten">0%</div>
+                    <div class="label" data-i18n="avgEaten">Avg Eaten</div>
+                </div>
+                <div class="summary-item">
+                    <div class="value" id="today-feedings">0</div>
+                    <div class="label" data-i18n="feedings">Feedings</div>
+                </div>
+                <div class="summary-item">
+                    <div class="value" id="last-fed">-</div>
+                    <div class="label" data-i18n="lastFed">Last Fed</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="addFeeding">Add Feeding</h2>
+            <div class="food-input-group">
+                <input type="number" class="food-input" id="food-amount" placeholder="0" min="0" max="200">
+                <div class="food-unit">g</div>
+            </div>
+            <div class="quick-buttons">
+                <button class="quick-btn" onclick="setFoodAmount(10)">10g</button>
+                <button class="quick-btn" onclick="setFoodAmount(20)">20g</button>
+                <button class="quick-btn" onclick="setFoodAmount(30)">30g</button>
+                <button class="quick-btn" onclick="setFoodAmount(40)">40g</button>
+            </div>
+            <button class="btn" onclick="startFeeding()" data-i18n="logFeeding">Log Feeding</button>
+        </div>
+
+        <div id="pending-feeding-card" class="card" style="display: none;">
+            <h2 data-i18n="howMuchAte">How much did Boma eat?</h2>
+            <div class="circular-slider-container">
+                <div class="circular-slider" id="eaten-slider">
+                    <svg viewBox="0 0 200 200">
+                        <circle class="bg-circle" cx="100" cy="100" r="80"/>
+                        <circle class="progress-circle" cx="100" cy="100" r="80"
+                            stroke-dasharray="502.65" stroke-dashoffset="502.65" id="progress-circle"/>
+                    </svg>
+                    <div class="center-text">
+                        <div class="percentage" id="eaten-percentage">0%</div>
+                        <div class="label" data-i18n="eaten">eaten</div>
+                    </div>
+                </div>
+            </div>
+            <div class="quick-buttons">
+                <button class="quick-btn" onclick="setEatenPercentage(25)">25%</button>
+                <button class="quick-btn" onclick="setEatenPercentage(50)">50%</button>
+                <button class="quick-btn" onclick="setEatenPercentage(75)">75%</button>
+                <button class="quick-btn" onclick="setEatenPercentage(100)">100%</button>
+            </div>
+            <button class="btn" onclick="saveFeeding()" data-i18n="saveFeeding">Save Feeding</button>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="recentFeedings">Recent Feedings</h2>
+            <div class="log-list" id="feeding-log"></div>
+        </div>
+    </div>
+
+    <!-- Litter Tab -->
+    <div id="litter-tab" class="tab-content">
+        <div class="card">
+            <h2 data-i18n="todayLitter">Today's Litter Activity</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="value" id="today-poops">0</div>
+                    <div class="label" data-i18n="poops">Poops</div>
+                </div>
+                <div class="summary-item">
+                    <div class="value" id="today-pees">0</div>
+                    <div class="label" data-i18n="pees">Pees</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="logLitter">Log Litter</h2>
+            <div class="litter-buttons">
+                <button class="litter-btn poop" onclick="logLitter('poop')">
+                    <span>💩</span>
+                    <span data-i18n="poop">Poop</span>
+                </button>
+                <button class="litter-btn pee" onclick="logLitter('pee')">
+                    <span>💧</span>
+                    <span data-i18n="pee">Pee</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="recentLitter">Recent Litter Activity</h2>
+            <div class="log-list" id="litter-log"></div>
+        </div>
+    </div>
+
+    <!-- Charts Tab -->
+    <div id="charts-tab" class="tab-content">
+        <div class="card">
+            <h2 data-i18n="foodIntake">Food Intake</h2>
+            <div class="chart-controls">
+                <button class="chart-btn active" onclick="updateChart('food', '7days')" data-range="7days" data-i18n="7days">7 Days</button>
+                <button class="chart-btn" onclick="updateChart('food', '30days')" data-range="30days" data-i18n="30days">30 Days</button>
+                <button class="chart-btn" onclick="updateChart('food', '90days')" data-range="90days" data-i18n="90days">90 Days</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="food-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="litterActivity">Litter Activity</h2>
+            <div class="chart-controls">
+                <button class="chart-btn active" onclick="updateChart('litter', '7days')" data-range="7days" data-i18n="7days">7 Days</button>
+                <button class="chart-btn" onclick="updateChart('litter', '30days')" data-range="30days" data-i18n="30days">30 Days</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="litter-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="weightHistory">Weight History</h2>
+            <div class="chart-container">
+                <canvas id="weight-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Health Tab -->
+    <div id="health-tab" class="tab-content">
+        <div class="card">
+            <h2 data-i18n="currentWeight">Current Weight</h2>
+            <div class="summary-grid" style="grid-template-columns: 1fr;">
+                <div class="summary-item">
+                    <div class="value" id="current-weight">-</div>
+                    <div class="label" data-i18n="lastRecorded">Last Recorded</div>
+                </div>
+            </div>
+            <div class="form-group" style="margin-top: 16px;">
+                <div class="food-input-group">
+                    <input type="number" class="food-input" id="weight-input" placeholder="0.0" step="0.1" min="0" max="20">
+                    <div class="food-unit">kg</div>
+                </div>
+            </div>
+            <button class="btn" onclick="logWeight()" data-i18n="logWeight">Log Weight</button>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="addHealthEvent">Add Health Event</h2>
+            <div class="form-group">
+                <label data-i18n="eventType">Event Type</label>
+                <select id="health-event-type">
+                    <option value="vet" data-i18n="vetVisit">Vet Visit</option>
+                    <option value="vaccine" data-i18n="vaccine">Vaccine</option>
+                    <option value="surgery" data-i18n="surgery">Surgery</option>
+                    <option value="medication" data-i18n="medication">Medication</option>
+                    <option value="other" data-i18n="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label data-i18n="date">Date</label>
+                <input type="date" id="health-event-date">
+            </div>
+            <div class="form-group">
+                <label data-i18n="notes">Notes</label>
+                <textarea id="health-event-notes" placeholder=""></textarea>
+            </div>
+            <button class="btn" onclick="logHealthEvent()" data-i18n="addEvent">Add Event</button>
+        </div>
+
+        <div class="card">
+            <h2 data-i18n="healthTimeline">Health Timeline</h2>
+            <div class="timeline" id="health-timeline"></div>
+        </div>
+    </div>
+
+    <script>
+        // ========== Internationalization ==========
+        const translations = {
+            en: {
+                appName: "Boma Tracker",
+                tabFeed: "Feed",
+                tabLitter: "Litter",
+                tabCharts: "Charts",
+                tabHealth: "Health",
+                todaySummary: "Today's Summary",
+                totalFood: "Total Food",
+                avgEaten: "Avg Eaten",
+                feedings: "Feedings",
+                lastFed: "Last Fed",
+                addFeeding: "Add Feeding",
+                logFeeding: "Log Feeding",
+                howMuchAte: "How much did Boma eat?",
+                eaten: "eaten",
+                saveFeeding: "Save Feeding",
+                recentFeedings: "Recent Feedings",
+                todayLitter: "Today's Litter Activity",
+                poops: "Poops",
+                pees: "Pees",
+                logLitter: "Log Litter",
+                poop: "Poop",
+                pee: "Pee",
+                recentLitter: "Recent Litter Activity",
+                foodIntake: "Food Intake",
+                litterActivity: "Litter Activity",
+                weightHistory: "Weight History",
+                "7days": "7 Days",
+                "30days": "30 Days",
+                "90days": "90 Days",
+                currentWeight: "Current Weight",
+                lastRecorded: "Last Recorded",
+                logWeight: "Log Weight",
+                addHealthEvent: "Add Health Event",
+                eventType: "Event Type",
+                vetVisit: "Vet Visit",
+                vaccine: "Vaccine",
+                surgery: "Surgery",
+                medication: "Medication",
+                other: "Other",
+                date: "Date",
+                notes: "Notes",
+                addEvent: "Add Event",
+                healthTimeline: "Health Timeline",
+                noFeedings: "No feedings yet today",
+                noLitter: "No litter activity yet today",
+                noHealthEvents: "No health events recorded",
+                fed: "fed",
+                ate: "ate"
+            },
+            ko: {
+                appName: "보마 트래커",
+                tabFeed: "밥",
+                tabLitter: "화장실",
+                tabCharts: "차트",
+                tabHealth: "건강",
+                todaySummary: "오늘 요약",
+                totalFood: "총 급여량",
+                avgEaten: "평균 섭취",
+                feedings: "급여 횟수",
+                lastFed: "마지막 급여",
+                addFeeding: "급여 기록",
+                logFeeding: "급여 기록하기",
+                howMuchAte: "보마가 얼마나 먹었나요?",
+                eaten: "섭취",
+                saveFeeding: "저장하기",
+                recentFeedings: "최근 급여 기록",
+                todayLitter: "오늘 화장실 활동",
+                poops: "대변",
+                pees: "소변",
+                logLitter: "화장실 기록",
+                poop: "대변",
+                pee: "소변",
+                recentLitter: "최근 화장실 기록",
+                foodIntake: "급여량",
+                litterActivity: "화장실 활동",
+                weightHistory: "체중 기록",
+                "7days": "7일",
+                "30days": "30일",
+                "90days": "90일",
+                currentWeight: "현재 체중",
+                lastRecorded: "마지막 기록",
+                logWeight: "체중 기록하기",
+                addHealthEvent: "건강 이벤트 추가",
+                eventType: "이벤트 유형",
+                vetVisit: "병원 방문",
+                vaccine: "예방접종",
+                surgery: "수술",
+                medication: "투약",
+                other: "기타",
+                date: "날짜",
+                notes: "메모",
+                addEvent: "이벤트 추가",
+                healthTimeline: "건강 타임라인",
+                noFeedings: "오늘 급여 기록이 없습니다",
+                noLitter: "오늘 화장실 기록이 없습니다",
+                noHealthEvents: "건강 기록이 없습니다",
+                fed: "급여",
+                ate: "섭취"
+            }
+        };
+
+        let currentLang = localStorage.getItem('boma-lang') || 'en';
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'ko' : 'en';
+            localStorage.setItem('boma-lang', currentLang);
+            updateLanguage();
+        }
+
+        function updateLanguage() {
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[currentLang][key]) {
+                    el.textContent = translations[currentLang][key];
+                }
+            });
+            document.querySelector('.lang-toggle').textContent = currentLang === 'en' ? '한국어' : 'English';
+        }
+
+        // ========== Data Management ==========
+        function getData() {
+            const data = localStorage.getItem('boma-data');
+            return data ? JSON.parse(data) : {
+                feedings: [],
+                litter: [],
+                weights: [],
+                healthEvents: []
+            };
+        }
+
+        function saveData(data) {
+            localStorage.setItem('boma-data', JSON.stringify(data));
+        }
+
+        // ========== Tab Navigation ==========
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(`${tab}-tab`).classList.add('active');
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+
+            if (tab === 'charts') {
+                setTimeout(() => {
+                    initCharts();
+                }, 100);
+            }
+        }
+
+        // ========== Feeding Functions ==========
+        let pendingFeeding = null;
+        let currentEatenPercentage = 100;
+
+        function setFoodAmount(amount) {
+            document.getElementById('food-amount').value = amount;
+        }
+
+        function startFeeding() {
+            const amount = parseFloat(document.getElementById('food-amount').value);
+            if (!amount || amount <= 0) {
+                alert(currentLang === 'en' ? 'Please enter a valid amount' : '유효한 양을 입력해주세요');
+                return;
+            }
+
+            pendingFeeding = {
+                amount: amount,
+                timestamp: new Date().toISOString()
+            };
+
+            document.getElementById('pending-feeding-card').style.display = 'block';
+            document.getElementById('food-amount').value = '';
+            setEatenPercentage(100);
+        }
+
+        function setEatenPercentage(percent) {
+            currentEatenPercentage = percent;
+            updateCircularSlider(percent);
+        }
+
+        function updateCircularSlider(percent) {
+            const circle = document.getElementById('progress-circle');
+            const circumference = 2 * Math.PI * 80;
+            const offset = circumference - (percent / 100) * circumference;
+            circle.style.strokeDashoffset = offset;
+            document.getElementById('eaten-percentage').textContent = `${percent}%`;
+        }
+
+        // Circular slider drag functionality
+        function initCircularSlider() {
+            const slider = document.getElementById('eaten-slider');
+            let isDragging = false;
+
+            function getAngleFromEvent(e) {
+                const rect = slider.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                let angle = Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI);
+                angle = (angle + 90 + 360) % 360;
+                return Math.min(100, Math.max(0, Math.round(angle / 3.6)));
+            }
+
+            function handleMove(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                currentEatenPercentage = getAngleFromEvent(e);
+                updateCircularSlider(currentEatenPercentage);
+            }
+
+            slider.addEventListener('mousedown', (e) => { isDragging = true; handleMove(e); });
+            slider.addEventListener('touchstart', (e) => { isDragging = true; handleMove(e); });
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('touchmove', handleMove, { passive: false });
+            document.addEventListener('mouseup', () => isDragging = false);
+            document.addEventListener('touchend', () => isDragging = false);
+        }
+
+        function saveFeeding() {
+            if (!pendingFeeding) return;
+
+            const data = getData();
+            data.feedings.push({
+                ...pendingFeeding,
+                percentEaten: currentEatenPercentage,
+                actualEaten: Math.round(pendingFeeding.amount * currentEatenPercentage / 100)
+            });
+            saveData(data);
+
+            pendingFeeding = null;
+            document.getElementById('pending-feeding-card').style.display = 'none';
+            updateFeedingDisplay();
+        }
+
+        function deleteFeeding(index) {
+            const data = getData();
+            data.feedings.splice(index, 1);
+            saveData(data);
+            updateFeedingDisplay();
+        }
+
+        function updateFeedingDisplay() {
+            const data = getData();
+            const today = new Date().toDateString();
+            const todayFeedings = data.feedings.filter(f => new Date(f.timestamp).toDateString() === today);
+
+            // Summary
+            const totalFood = todayFeedings.reduce((sum, f) => sum + f.amount, 0);
+            const avgEaten = todayFeedings.length > 0
+                ? Math.round(todayFeedings.reduce((sum, f) => sum + f.percentEaten, 0) / todayFeedings.length)
+                : 0;
+
+            document.getElementById('today-food').textContent = `${totalFood}g`;
+            document.getElementById('today-eaten').textContent = `${avgEaten}%`;
+            document.getElementById('today-feedings').textContent = todayFeedings.length;
+
+            if (todayFeedings.length > 0) {
+                const lastFed = new Date(todayFeedings[todayFeedings.length - 1].timestamp);
+                document.getElementById('last-fed').textContent = lastFed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else {
+                document.getElementById('last-fed').textContent = '-';
+            }
+
+            // Log list
+            const logContainer = document.getElementById('feeding-log');
+            const recentFeedings = data.feedings.slice(-10).reverse();
+
+            if (recentFeedings.length === 0) {
+                logContainer.innerHTML = `<div class="empty-state"><span>🍽️</span>${translations[currentLang].noFeedings}</div>`;
+            } else {
+                logContainer.innerHTML = recentFeedings.map((f, i) => {
+                    const date = new Date(f.timestamp);
+                    const realIndex = data.feedings.length - 1 - i;
+                    return `
+                        <div class="log-item">
+                            <div class="info">
+                                <span class="primary">${f.amount}g ${translations[currentLang].fed}, ${f.percentEaten}% ${translations[currentLang].ate}</span>
+                                <span class="secondary">${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <button class="delete-btn" onclick="deleteFeeding(${realIndex})">×</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // ========== Litter Functions ==========
+        function logLitter(type) {
+            const data = getData();
+            data.litter.push({
+                type: type,
+                timestamp: new Date().toISOString()
+            });
+            saveData(data);
+            updateLitterDisplay();
+
+            // Visual feedback
+            const btn = document.querySelector(`.litter-btn.${type}`);
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => btn.style.transform = '', 150);
+        }
+
+        function deleteLitter(index) {
+            const data = getData();
+            data.litter.splice(index, 1);
+            saveData(data);
+            updateLitterDisplay();
+        }
+
+        function updateLitterDisplay() {
+            const data = getData();
+            const today = new Date().toDateString();
+            const todayLitter = data.litter.filter(l => new Date(l.timestamp).toDateString() === today);
+
+            document.getElementById('today-poops').textContent = todayLitter.filter(l => l.type === 'poop').length;
+            document.getElementById('today-pees').textContent = todayLitter.filter(l => l.type === 'pee').length;
+
+            // Log list
+            const logContainer = document.getElementById('litter-log');
+            const recentLitter = data.litter.slice(-10).reverse();
+
+            if (recentLitter.length === 0) {
+                logContainer.innerHTML = `<div class="empty-state"><span>🚽</span>${translations[currentLang].noLitter}</div>`;
+            } else {
+                logContainer.innerHTML = recentLitter.map((l, i) => {
+                    const date = new Date(l.timestamp);
+                    const realIndex = data.litter.length - 1 - i;
+                    return `
+                        <div class="log-item">
+                            <div class="info">
+                                <span class="primary">${l.type === 'poop' ? '💩' : '💧'} ${translations[currentLang][l.type]}</span>
+                                <span class="secondary">${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <button class="delete-btn" onclick="deleteLitter(${realIndex})">×</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // ========== Health Functions ==========
+        function logWeight() {
+            const weight = parseFloat(document.getElementById('weight-input').value);
+            if (!weight || weight <= 0) {
+                alert(currentLang === 'en' ? 'Please enter a valid weight' : '유효한 체중을 입력해주세요');
+                return;
+            }
+
+            const data = getData();
+            data.weights.push({
+                weight: weight,
+                timestamp: new Date().toISOString()
+            });
+            saveData(data);
+            document.getElementById('weight-input').value = '';
+            updateHealthDisplay();
+        }
+
+        function logHealthEvent() {
+            const type = document.getElementById('health-event-type').value;
+            const date = document.getElementById('health-event-date').value;
+            const notes = document.getElementById('health-event-notes').value;
+
+            if (!date) {
+                alert(currentLang === 'en' ? 'Please select a date' : '날짜를 선택해주세요');
+                return;
+            }
+
+            const data = getData();
+            data.healthEvents.push({
+                type: type,
+                date: date,
+                notes: notes,
+                timestamp: new Date().toISOString()
+            });
+            saveData(data);
+
+            document.getElementById('health-event-date').value = '';
+            document.getElementById('health-event-notes').value = '';
+            updateHealthDisplay();
+        }
+
+        function deleteHealthEvent(index) {
+            const data = getData();
+            data.healthEvents.splice(index, 1);
+            saveData(data);
+            updateHealthDisplay();
+        }
+
+        function updateHealthDisplay() {
+            const data = getData();
+
+            // Current weight
+            if (data.weights.length > 0) {
+                const lastWeight = data.weights[data.weights.length - 1];
+                document.getElementById('current-weight').textContent = `${lastWeight.weight} kg`;
+            }
+
+            // Timeline
+            const timeline = document.getElementById('health-timeline');
+            const events = [...data.healthEvents].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (events.length === 0) {
+                timeline.innerHTML = `<div class="empty-state"><span>🏥</span>${translations[currentLang].noHealthEvents}</div>`;
+            } else {
+                const eventIcons = { vet: '🏥', vaccine: '💉', surgery: '🔪', medication: '💊', other: '📋' };
+                timeline.innerHTML = events.map((e, i) => {
+                    const realIndex = data.healthEvents.findIndex(he => he.timestamp === e.timestamp);
+                    return `
+                        <div class="timeline-item">
+                            <div class="date">${new Date(e.date).toLocaleDateString()}</div>
+                            <div class="title">${eventIcons[e.type]} ${translations[currentLang][e.type === 'vet' ? 'vetVisit' : e.type]}</div>
+                            ${e.notes ? `<div class="details">${e.notes}</div>` : ''}
+                            <button class="delete-btn" style="position: absolute; top: 8px; right: 8px;" onclick="deleteHealthEvent(${realIndex})">×</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // ========== Charts ==========
+        let foodChart, litterChart, weightChart;
+
+        function initCharts() {
+            const data = getData();
+
+            // Destroy existing charts
+            if (foodChart) foodChart.destroy();
+            if (litterChart) litterChart.destroy();
+            if (weightChart) weightChart.destroy();
+
+            // Food chart
+            const foodCtx = document.getElementById('food-chart').getContext('2d');
+            const foodData = getChartData(data.feedings, 7, 'food');
+            foodChart = new Chart(foodCtx, {
+                type: 'bar',
+                data: {
+                    labels: foodData.labels,
+                    datasets: [{
+                        label: currentLang === 'en' ? 'Food (g)' : '급여량 (g)',
+                        data: foodData.values,
+                        backgroundColor: '#ffd700',
+                        borderRadius: 4
+                    }]
+                },
+                options: getChartOptions()
+            });
+
+            // Litter chart
+            const litterCtx = document.getElementById('litter-chart').getContext('2d');
+            const litterData = getChartData(data.litter, 7, 'litter');
+            litterChart = new Chart(litterCtx, {
+                type: 'bar',
+                data: {
+                    labels: litterData.labels,
+                    datasets: [
+                        {
+                            label: currentLang === 'en' ? 'Poops' : '대변',
+                            data: litterData.poops,
+                            backgroundColor: '#8b4513',
+                            borderRadius: 4
+                        },
+                        {
+                            label: currentLang === 'en' ? 'Pees' : '소변',
+                            data: litterData.pees,
+                            backgroundColor: '#ffd700',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: getChartOptions()
+            });
+
+            // Weight chart
+            const weightCtx = document.getElementById('weight-chart').getContext('2d');
+            weightChart = new Chart(weightCtx, {
+                type: 'line',
+                data: {
+                    labels: data.weights.map(w => new Date(w.timestamp).toLocaleDateString()),
+                    datasets: [{
+                        label: currentLang === 'en' ? 'Weight (kg)' : '체중 (kg)',
+                        data: data.weights.map(w => w.weight),
+                        borderColor: '#ffd700',
+                        backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: getChartOptions()
+            });
+        }
+
+        function getChartData(items, days, type) {
+            const labels = [];
+            const values = [];
+            const poops = [];
+            const pees = [];
+
+            for (let i = days - 1; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toDateString();
+                labels.push(date.toLocaleDateString([], { month: 'short', day: 'numeric' }));
+
+                if (type === 'food') {
+                    const dayItems = items.filter(item => new Date(item.timestamp).toDateString() === dateStr);
+                    values.push(dayItems.reduce((sum, item) => sum + (item.actualEaten || item.amount), 0));
+                } else {
+                    const dayItems = items.filter(item => new Date(item.timestamp).toDateString() === dateStr);
+                    poops.push(dayItems.filter(item => item.type === 'poop').length);
+                    pees.push(dayItems.filter(item => item.type === 'pee').length);
+                }
+            }
+
+            return { labels, values, poops, pees };
+        }
+
+        function getChartOptions() {
+            return {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#a0a0a0' }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: { color: '#a0a0a0' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    y: {
+                        ticks: { color: '#a0a0a0' },
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        beginAtZero: true
+                    }
+                }
+            };
+        }
+
+        function updateChart(chartType, range) {
+            const days = range === '7days' ? 7 : range === '30days' ? 30 : 90;
+            const data = getData();
+
+            // Update button states
+            document.querySelectorAll(`.chart-btn[data-range]`).forEach(btn => {
+                if (btn.closest('.card').querySelector(`#${chartType}-chart`)) {
+                    btn.classList.toggle('active', btn.dataset.range === range);
+                }
+            });
+
+            if (chartType === 'food' && foodChart) {
+                const chartData = getChartData(data.feedings, days, 'food');
+                foodChart.data.labels = chartData.labels;
+                foodChart.data.datasets[0].data = chartData.values;
+                foodChart.update();
+            } else if (chartType === 'litter' && litterChart) {
+                const chartData = getChartData(data.litter, days, 'litter');
+                litterChart.data.labels = chartData.labels;
+                litterChart.data.datasets[0].data = chartData.poops;
+                litterChart.data.datasets[1].data = chartData.pees;
+                litterChart.update();
+            }
+        }
+
+        // ========== Initialize ==========
+        document.addEventListener('DOMContentLoaded', () => {
+            updateLanguage();
+            initCircularSlider();
+            updateFeedingDisplay();
+            updateLitterDisplay();
+            updateHealthDisplay();
+
+            // Set default date to today
+            document.getElementById('health-event-date').valueAsDate = new Date();
+        });
+    </script>
+</body>
+</html>
