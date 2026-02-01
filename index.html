@@ -1691,7 +1691,7 @@
             const today = new Date().toDateString();
             const todayLitter = data.litter.filter(l => new Date(l.timestamp).toDateString() === today);
 
-            document.getElementById('today-poops').textContent = todayLitter.filter(l => l.type === 'poop').length;
+            document.getElementById('today-poops').textContent = todayLitter.filter(l => l.type === 'poop').reduce((sum, l) => sum + (l.value || 1), 0);
             document.getElementById('today-pees').textContent = todayLitter.filter(l => l.type === 'pee').length;
 
             // Log list
