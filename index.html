@@ -1834,9 +1834,17 @@
                     labels: litterData.labels,
                     datasets: [
                         {
-                            label: currentLang === 'en' ? 'Poops' : '대변',
-                            data: litterData.poops,
-                            backgroundColor: '#8b4513',
+                            label: currentLang === 'en' ? 'Small Poo' : '작은 똥',
+                            data: litterData.smallPoops,
+                            backgroundColor: '#c4813a',
+                            stack: 'poop',
+                            borderRadius: 0
+                        },
+                        {
+                            label: currentLang === 'en' ? 'Big Poo' : '큰 똥',
+                            data: litterData.bigPoops,
+                            backgroundColor: '#5c2d0e',
+                            stack: 'poop',
                             borderRadius: 4
                         },
                         {
@@ -1872,7 +1880,8 @@
         function getChartData(items, days, type) {
             const labels = [];
             const values = [];
-            const poops = [];
+            const smallPoops = [];
+            const bigPoops = [];
             const pees = [];
 
             for (let i = days - 1; i >= 0; i--) {
@@ -1886,12 +1895,14 @@
                     values.push(dayItems.reduce((sum, item) => sum + (item.actualEaten || item.amount), 0));
                 } else {
                     const dayItems = items.filter(item => new Date(item.timestamp).toDateString() === dateStr);
-                    poops.push(dayItems.filter(item => item.type === 'poop').reduce((sum, item) => sum + (item.value || 1), 0));
+                    const dayPoops = dayItems.filter(item => item.type === 'poop');
+                    smallPoops.push(dayPoops.filter(item => item.value === 1).length);
+                    bigPoops.push(dayPoops.filter(item => item.value === 2).length * 2);
                     pees.push(dayItems.filter(item => item.type === 'pee').length);
                 }
             }
 
-            return { labels, values, poops, pees };
+            return { labels, values, smallPoops, bigPoops, pees };
         }
 
         function getChartOptions() {
@@ -1936,8 +1947,9 @@
             } else if (chartType === 'litter' && litterChart) {
                 const chartData = getChartData(data.litter, days, 'litter');
                 litterChart.data.labels = chartData.labels;
-                litterChart.data.datasets[0].data = chartData.poops;
-                litterChart.data.datasets[1].data = chartData.pees;
+                litterChart.data.datasets[0].data = chartData.smallPoops;
+                litterChart.data.datasets[1].data = chartData.bigPoops;
+                litterChart.data.datasets[2].data = chartData.pees;
                 litterChart.update();
             }
         }
