@@ -380,6 +380,12 @@
             gap: 16px;
         }
 
+        .poop-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
         .litter-btn {
             background: var(--bg-secondary);
             border: 2px solid var(--accent);
@@ -395,12 +401,23 @@
             transition: all 0.2s;
         }
 
+        .litter-btn.poop {
+            padding: 10px 15px;
+            flex: 1;
+            font-size: 0.9rem;
+            gap: 4px;
+        }
+
         .litter-btn:active {
             transform: scale(0.95);
         }
 
         .litter-btn span {
             font-size: 2.5rem;
+        }
+
+        .litter-btn.poop span {
+            font-size: 1.5rem;
         }
 
         .litter-btn.poop {
@@ -937,14 +954,16 @@
         <div class="card">
             <h2 data-i18n="logLitter">Log Litter</h2>
             <div class="litter-buttons">
-                <button class="litter-btn poop small-poop" onclick="logLitter('poop', 1)">
-                    <span>💩</span>
-                    <span data-i18n="smallPoop">Small Poo (&lt;2cm)</span>
-                </button>
-                <button class="litter-btn poop big-poop" onclick="logLitter('poop', 2)">
-                    <span>💩</span>
-                    <span data-i18n="bigPoop">Big Poo (&gt;2cm)</span>
-                </button>
+                <div class="poop-buttons">
+                    <button class="litter-btn poop small-poop" onclick="logLitter('poop', 1)">
+                        <span>💩</span>
+                        <span data-i18n="smallPoop">Small Poo (&lt;2cm)</span>
+                    </button>
+                    <button class="litter-btn poop big-poop" onclick="logLitter('poop', 2)">
+                        <span>💩</span>
+                        <span data-i18n="bigPoop">Big Poo (&gt;2cm)</span>
+                    </button>
+                </div>
                 <button class="litter-btn pee" onclick="logLitter('pee')">
                     <span>💧</span>
                     <span data-i18n="pee">Pee</span>
