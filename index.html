@@ -937,9 +937,13 @@
         <div class="card">
             <h2 data-i18n="logLitter">Log Litter</h2>
             <div class="litter-buttons">
-                <button class="litter-btn poop" onclick="logLitter('poop')">
+                <button class="litter-btn poop small-poop" onclick="logLitter('poop', 1)">
                     <span>💩</span>
-                    <span data-i18n="poop">Poop</span>
+                    <span data-i18n="smallPoop">Small Poo (&lt;2cm)</span>
+                </button>
+                <button class="litter-btn poop big-poop" onclick="logLitter('poop', 2)">
+                    <span>💩</span>
+                    <span data-i18n="bigPoop">Big Poo (&gt;2cm)</span>
                 </button>
                 <button class="litter-btn pee" onclick="logLitter('pee')">
                     <span>💧</span>
@@ -1060,6 +1064,8 @@
                 pees: "Pees",
                 logLitter: "Log Litter",
                 poop: "Poop",
+                smallPoop: "Small Poo (<2cm)",
+                bigPoop: "Big Poo (>2cm)",
                 pee: "Pee",
                 recentLitter: "Recent Litter Activity",
                 foodIntake: "Food Intake",
@@ -1134,6 +1140,8 @@
                 pees: "소변",
                 logLitter: "화장실 기록",
                 poop: "대변",
+                smallPoop: "작은 똥 (<2cm)",
+                bigPoop: "큰 똥 (>2cm)",
                 pee: "소변",
                 recentLitter: "최근 화장실 기록",
                 foodIntake: "급여량",
@@ -1632,17 +1640,22 @@
         }
 
         // ========== Litter Functions ==========
-        function logLitter(type) {
+        function logLitter(type, value) {
             const data = getData();
-            data.litter.push({
+            const entry = {
                 type: type,
                 timestamp: new Date().toISOString()
-            });
+            };
+            if (value !== undefined) {
+                entry.value = value;
+            }
+            data.litter.push(entry);
             saveData(data);
             updateLitterDisplay();
 
             // Visual feedback
-            const btn = document.querySelector(`.litter-btn.${type}`);
+            const btnClass = value === 1 ? 'small-poop' : (value === 2 ? 'big-poop' : type);
+            const btn = document.querySelector(`.litter-btn.${btnClass}`);
             btn.style.transform = 'scale(0.95)';
             setTimeout(() => btn.style.transform = '', 150);
         }
@@ -1675,7 +1688,7 @@
                     return `
                         <div class="log-item">
                             <div class="info">
-                                <span class="primary">${l.type === 'poop' ? '💩' : '💧'} ${translations[currentLang][l.type]}</span>
+                                <span class="primary">${l.type === 'poop' ? '💩' : '💧'} ${l.type === 'poop' ? (l.value === 1 ? (translations[currentLang].smallPoop || 'Small Poo') : (translations[currentLang].bigPoop || 'Big Poo')) : translations[currentLang][l.type]}</span>
                                 <span class="secondary">${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
                             <button class="delete-btn" onclick="deleteLitter(${realIndex})">×</button>
