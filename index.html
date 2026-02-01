@@ -1886,7 +1886,7 @@
                     values.push(dayItems.reduce((sum, item) => sum + (item.actualEaten || item.amount), 0));
                 } else {
                     const dayItems = items.filter(item => new Date(item.timestamp).toDateString() === dateStr);
-                    poops.push(dayItems.filter(item => item.type === 'poop').length);
+                    poops.push(dayItems.filter(item => item.type === 'poop').reduce((sum, item) => sum + (item.value || 1), 0));
                     pees.push(dayItems.filter(item => item.type === 'pee').length);
                 }
             }
